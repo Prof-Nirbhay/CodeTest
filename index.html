@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Preprocessing & Feature Engineering</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --light-blue: #e0f3ff;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            color: #333;
+            scroll-behavior: smooth;
+        }
+
+        /* Glassmorphism Classes */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--primary-blue);
+            animation: fadeInDown 1s ease;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: #555;
+            margin-bottom: 2rem;
+            animation: fadeInUp 1s ease 0.3s;
+            animation-fill-mode: both;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+
+        /* Section Styling */
+        section { padding: 80px 0; }
+        .section-title {
+            color: var(--primary-blue);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        /* Interactive Elements */
+        .interactive-table td { transition: all 0.5s ease; }
+        .highlight-error { background-color: #ffdce0 !important; color: #dc3545; font-weight: bold; }
+        .highlight-fixed { background-color: #d1e7dd !important; color: #0f5132; font-weight: bold; }
+
+        .pipeline-step {
+            cursor: pointer;
+            padding: 15px;
+            border-radius: 10px;
+            background: white;
+            border: 2px solid var(--primary-blue);
+            text-align: center;
+            margin: 10px;
+            flex: 1;
+            transition: all 0.3s;
+        }
+        .pipeline-step:hover, .pipeline-step.active {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        /* Bar Chart Animation */
+        .chart-container { display: flex; align-items: flex-end; justify-content: space-around; height: 200px; padding: 20px; background: white; border-radius: 10px; }
+        .bar { width: 50px; background: var(--primary-blue); transition: height 0.8s ease, background 0.8s ease; border-radius: 5px 5px 0 0; text-align: center; color: white; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px;}
+
+        /* Heatmap Grid */
+        .heatmap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; max-width: 300px; margin: 0 auto; }
+        .heat-cell { padding: 20px; text-align: center; color: white; font-weight: bold; border-radius: 5px; }
+
+        /* Quiz */
+        #quiz-container { display: none; }
+        .options-btn { width: 100%; text-align: left; margin-bottom: 10px; }
+
+        /* Student Activity */
+        .activity-cell { cursor: pointer; transition: background 0.3s; }
+        .activity-cell:hover { background: #eee; }
+
+        footer { background: #222; color: white; padding: 2rem 0; text-align: center; }
+    </style>
+</head>
+<body data-bs-spy="scroll" data-bs-target="#mainNav" data-bs-offset="70">
+
+    <nav id="mainNav" class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="#"><i class="fas fa-database"></i> DataPrep.Ed</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#intro">Intro</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#dirty-data">Why Clean?</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#preprocessing">Preprocessing</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#feature-eng">Feature Eng</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#quiz">Quiz</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero-section">
+        <div class="container">
+            <h1 class="hero-title">Data Preprocessing & Feature Engineering</h1>
+            <p class="hero-subtitle">Transforming Raw Data into Intelligent Insights</p>
+            <a href="#intro" class="btn btn-primary btn-lg rounded-pill px-5 py-3 shadow-lg"><i class="fas fa-rocket"></i> Start Learning</a>
+        </div>
+    </header>
+
+    <section id="intro" class="container">
+        <h2 class="section-title">What is Data?</h2>
+        <p class="text-center lead mb-5">Data is a collection of facts, numbers, or text that can be processed by a computer. Let's look at real-world examples.</p>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="glass-card p-4 text-center h-100">
+                    <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
+                    <h4>Student Marks</h4>
+                    <p>Scores, attendance, and grades used to predict student performance.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-4 text-center h-100">
+                    <i class="fas fa-shopping-cart fa-3x text-primary mb-3"></i>
+                    <h4>Online Shopping</h4>
+                    <p>Click rates, purchase history, and cart items used for recommendations.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-4 text-center h-100">
+                    <i class="fas fa-heartbeat fa-3x text-primary mb-3"></i>
+                    <h4>Healthcare</h4>
+                    <p>Patient records, blood pressure, and lab results for diagnosing diseases.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="dirty-data" class="container">
+        <div class="glass-card p-5">
+            <h2 class="section-title">Why Raw Data is a Problem</h2>
+            <p>Real-world data is often incomplete, inconsistent, and contains errors. Models cannot learn from bad data. (<strong>Garbage In, Garbage Out</strong>).</p>
+            
+            <div class="table-responsive bg-white rounded shadow-sm p-3 mb-4">
+                <table class="table table-bordered text-center interactive-table" id="rawDataTable">
+                    <thead class="table-dark">
+                        <tr><th>Name</th><th>Age</th><th>Salary</th><th>Problem</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Rahul</td><td>25</td><td>50000</td><td>None</td></tr>
+                        <tr id="row-dup" class="highlight-error"><td>Rahul</td><td>25</td><td>50000</td><td>Duplicate Row</td></tr>
+                        <tr id="row-miss" class="highlight-error"><td>Priya</td><td id="cell-miss">?</td><td>45000</td><td>Missing Value</td></tr>
+                        <tr id="row-inv" class="highlight-error"><td>Amit</td><td id="cell-inv">Twenty</td><td>55000</td><td>Invalid Format</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center">
+                <button class="btn btn-warning btn-lg" onclick="cleanData()"><i class="fas fa-broom"></i> Clean the Data</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="preprocessing" class="container">
+        <h2 class="section-title">The Data Preprocessing Pipeline</h2>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div class="pipeline-step" onclick="showStepInfo('Raw Data', 'Data as collected from sources (Sensors, web scraping, forms).')">Raw Data</div>
+            <i class="fas fa-arrow-right d-none d-md-block text-muted"></i>
+            <div class="pipeline-step" onclick="showStepInfo('Cleaning', 'Removing duplicates and fixing typos.')">Cleaning</div>
+            <i class="fas fa-arrow-right d-none d-md-block text-muted"></i>
+            <div class="pipeline-step" onclick="showStepInfo('Missing Values', 'Handling empty cells using imputation or removal.')">Missing Values</div>
+            <i class="fas fa-arrow-right d-none d-md-block text-muted"></i>
+            <div class="pipeline-step" onclick="showStepInfo('Encoding', 'Converting text/categories into numbers (e.g., Male=1, Female=0).')">Encoding</div>
+            <i class="fas fa-arrow-right d-none d-md-block text-muted"></i>
+            <div class="pipeline-step" onclick="showStepInfo('Scaling', 'Ensuring all numbers are on a similar scale (e.g., 0 to 1).')">Scaling</div>
+        </div>
+        <div class="glass-card p-4 text-center bg-light">
+            <h4 id="step-title" class="text-primary">Click a step above</h4>
+            <p id="step-desc">Learn what happens at each stage of the pipeline.</p>
+        </div>
+    </section>
+
+    <section id="missing-values" class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h2 class="section-title text-start">Handling Missing Values</h2>
+                <ul>
+                    <li><strong>MCAR (Missing Completely at Random):</strong> No pattern to the missing data.</li>
+                    <li><strong>MAR (Missing at Random):</strong> Missingness depends on other observed data.</li>
+                    <li><strong>MNAR (Missing Not at Random):</strong> Missingness depends on the unobserved data itself.</li>
+                </ul>
+                <div class="btn-group mt-3">
+                    <button class="btn btn-outline-danger" onclick="handleMissing('remove')">Remove Row</button>
+                    <button class="btn btn-outline-primary" onclick="handleMissing('mean')">Replace with Mean</button>
+                    <button class="btn btn-outline-success" onclick="handleMissing('median')">Replace with Median</button>
+                </div>
+            </div>
+            <div class="col-md-6 mt-4 mt-md-0">
+                <div class="glass-card p-3 text-center">
+                    <h5>Dataset: Age Array</h5>
+                    <div class="fs-4 fw-bold p-3 bg-white rounded shadow-sm" id="missing-array">
+                        [ 20, 22, <span class="text-danger" id="mv-target">NaN</span>, 24, 26 ]
+                    </div>
+                    <small class="text-muted mt-2 d-block">Mean: 23 | Median: 23</small>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="encoding" class="container">
+        <div class="glass-card p-5">
+            <h2 class="section-title">Encoding Categorical Data</h2>
+            <p class="text-center">Machine learning models only understand numbers. We must convert text (categories) into numbers.</p>
+            
+            <div class="row mt-5 text-center">
+                <div class="col-md-5">
+                    <h4>Categorical</h4>
+                    <ul class="list-group list-group-flush shadow-sm">
+                        <li class="list-group-item">Apple</li>
+                        <li class="list-group-item">Banana</li>
+                        <li class="list-group-item">Apple</li>
+                    </ul>
+                </div>
+                <div class="col-md-2 d-flex align-items-center justify-content-center my-3">
+                    <button class="btn btn-primary rounded-circle p-3" onclick="doOneHot()"><i class="fas fa-exchange-alt"></i></button>
+                </div>
+                <div class="col-md-5">
+                    <h4>One-Hot Encoded</h4>
+                    <div id="encoded-result" class="bg-white p-3 border rounded shadow-sm opacity-50">
+                        <em>Click the button to encode</em>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="scaling" class="container">
+        <h2 class="section-title">Feature Scaling</h2>
+        <p class="text-center">Prevents features with large ranges (like Salary) from dominating features with small ranges (like Age).</p>
+        
+        <div class="row mt-4">
+            <div class="col-md-4 text-center">
+                <button class="btn btn-secondary w-100 mb-2" onclick="scaleData('raw')">Raw Data</button>
+                <button class="btn btn-primary w-100 mb-2" onclick="scaleData('norm')">Normalization (0 to 1)</button>
+                <button class="btn btn-success w-100 mb-2" onclick="scaleData('std')">Standardization (Mean=0)</button>
+            </div>
+            <div class="col-md-8">
+                <div class="chart-container shadow-sm border">
+                    <div class="bar" id="bar1" style="height: 10%;">A</div>
+                    <div class="bar" id="bar2" style="height: 90%;">B</div>
+                    <div class="bar" id="bar3" style="height: 40%;">C</div>
+                </div>
+                <div class="d-flex justify-content-around mt-2">
+                    <span id="lbl1">10</span>
+                    <span id="lbl2">900</span>
+                    <span id="lbl3">400</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="feature-eng" class="container">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="glass-card p-4 h-100">
+                    <h2 class="section-title text-start">Feature Engineering</h2>
+                    <p>Creating new meaningful features from existing ones to improve model accuracy.</p>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Date of Birth <i class="fas fa-arrow-right text-primary"></i> Age
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Purchase History <i class="fas fa-arrow-right text-primary"></i> Spending Score
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Lat/Long <i class="fas fa-arrow-right text-primary"></i> Distance to Store
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="glass-card p-4 h-100">
+                    <h2 class="section-title text-start">Feature Selection</h2>
+                    <p>Keeping only the most important features. Methods include Filter, Wrapper, and Embedded.</p>
+                    <h6 class="text-center mt-3">Correlation Heatmap (Simulation)</h6>
+                    <div class="heatmap mt-2">
+                        <div class="heat-cell" style="background: #08306b;">1.0</div>
+                        <div class="heat-cell" style="background: #4292c6;">0.6</div>
+                        <div class="heat-cell" style="background: #c6dbef; color: black;">0.1</div>
+                        <div class="heat-cell" style="background: #4292c6;">0.6</div>
+                        <div class="heat-cell" style="background: #08306b;">1.0</div>
+                        <div class="heat-cell" style="background: #deebf7; color: black;">-0.2</div>
+                        <div class="heat-cell" style="background: #c6dbef; color: black;">0.1</div>
+                        <div class="heat-cell" style="background: #deebf7; color: black;">-0.2</div>
+                        <div class="heat-cell" style="background: #08306b;">1.0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="activity" class="container">
+        <div class="glass-card p-5 text-center">
+            <h2 class="section-title">Student Activity: Spot the Errors</h2>
+            <p>Click on the cells that represent dirty data (errors, missing, or invalid formats).</p>
+            <div class="table-responsive bg-white rounded mx-auto" style="max-width: 600px;">
+                <table class="table table-bordered mb-0">
+                    <thead><tr><th>ID</th><th>City</th><th>Income</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td class="activity-cell" onclick="checkActivity(this, false)">1</td>
+                            <td class="activity-cell" onclick="checkActivity(this, false)">Mumbai</td>
+                            <td class="activity-cell" onclick="checkActivity(this, false)">60000</td>
+                        </tr>
+                        <tr>
+                            <td class="activity-cell" onclick="checkActivity(this, false)">2</td>
+                            <td class="activity-cell" onclick="checkActivity(this, true)">Mmbai</td>
+                            <td class="activity-cell" onclick="checkActivity(this, false)">65000</td>
+                        </tr>
+                        <tr>
+                            <td class="activity-cell" onclick="checkActivity(this, false)">3</td>
+                            <td class="activity-cell" onclick="checkActivity(this, false)">Delhi</td>
+                            <td class="activity-cell" onclick="checkActivity(this, true)">NaN</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p id="activity-feedback" class="mt-3 fw-bold"></p>
+        </div>
+    </section>
+
+    <section id="quiz" class="container mb-5">
+        <div class="glass-card p-5">
+            <h2 class="section-title">Mini Quiz</h2>
+            
+            <div id="quiz-start" class="text-center">
+                <p>Test your knowledge on Data Preprocessing and Feature Engineering!</p>
+                <button class="btn btn-primary btn-lg" onclick="startQuiz()">Start Quiz</button>
+            </div>
+
+            <div id="quiz-container">
+                <div class="progress mb-4" style="height: 10px;">
+                    <div id="quiz-progress" class="progress-bar" role="progressbar" style="width: 0%;"></div>
+                </div>
+                <h5 id="question-text" class="mb-4">Question text goes here</h5>
+                <div id="options-container">
+                    </div>
+                <p id="feedback-text" class="mt-3 fw-bold"></p>
+                <button id="next-btn" class="btn btn-secondary d-none" onclick="nextQuestion()">Next Question</button>
+            </div>
+
+            <div id="quiz-result" class="text-center d-none">
+                <h3 id="score-text"></h3>
+                <p id="score-msg"></p>
+                <button class="btn btn-primary" onclick="resetQuiz()">Try Again</button>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <h5 class="mb-1">Department of Advanced Computing</h5>
+            <p class="mb-0 text-muted">Data Preprocessing and Feature Engineering</p>
+            <small class="text-muted">Academic Year 2026-27</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // --- 2. Clean Data Table Logic ---
+        function cleanData() {
+            document.getElementById('row-dup').style.display = 'none'; // Remove duplicate
+            
+            let missCell = document.getElementById('cell-miss');
+            missCell.innerText = '25'; // Impute median
+            document.getElementById('row-miss').className = 'highlight-fixed';
+            document.getElementById('row-miss').lastElementChild.innerText = 'Imputed (Median)';
+
+            let invCell = document.getElementById('cell-inv');
+            invCell.innerText = '20'; // Fix format
+            document.getElementById('row-inv').className = 'highlight-fixed';
+            document.getElementById('row-inv').lastElementChild.innerText = 'Fixed Format';
+        }
+
+        // --- 3. Pipeline Info ---
+        function showStepInfo(title, desc) {
+            document.getElementById('step-title').innerText = title;
+            document.getElementById('step-desc').innerText = desc;
+        }
+
+        // --- 4. Missing Values Logic ---
+        function handleMissing(method) {
+            const target = document.getElementById('mv-target');
+            const arrayDiv = document.getElementById('missing-array');
+            if (method === 'remove') {
+                arrayDiv.innerHTML = '[ 20, 22, 24, 26 ] <span class="badge bg-danger ms-2">Row Removed</span>';
+            } else if (method === 'mean') {
+                arrayDiv.innerHTML = '[ 20, 22, <span class="text-success fw-bold">23</span>, 24, 26 ] <span class="badge bg-primary ms-2">Mean Imputed</span>';
+            } else if (method === 'median') {
+                arrayDiv.innerHTML = '[ 20, 22, <span class="text-success fw-bold">23</span>, 24, 26 ] <span class="badge bg-success ms-2">Median Imputed</span>';
+            }
+        }
+
+        // --- 5. Encoding Logic ---
+        function doOneHot() {
+            const res = document.getElementById('encoded-result');
+            res.classList.remove('opacity-50');
+            res.innerHTML = `
+                <table class="table table-sm table-bordered mb-0 text-center">
+                    <tr class="table-light"><th>is_Apple</th><th>is_Banana</th></tr>
+                    <tr><td>1</td><td>0</td></tr>
+                    <tr><td>0</td><td>1</td></tr>
+                    <tr><td>1</td><td>0</td></tr>
+                </table>
+            `;
+        }
+
+        // --- 6. Feature Scaling Logic ---
+        function scaleData(type) {
+            const b1 = document.getElementById('bar1');
+            const b2 = document.getElementById('bar2');
+            const b3 = document.getElementById('bar3');
+            const l1 = document.getElementById('lbl1');
+            const l2 = document.getElementById('lbl2');
+            const l3 = document.getElementById('lbl3');
+
+            if (type === 'raw') {
+                b1.style.height = '10%'; b2.style.height = '90%'; b3.style.height = '40%';
+                l1.innerText = '10'; l2.innerText = '900'; l3.innerText = '400';
+            } else if (type === 'norm') {
+                b1.style.height = '20%'; b2.style.height = '80%'; b3.style.height = '50%';
+                l1.innerText = '0.0'; l2.innerText = '1.0'; l3.innerText = '0.44';
+            } else if (type === 'std') {
+                b1.style.height = '30%'; b2.style.height = '70%'; b3.style.height = '45%';
+                l1.innerText = '-1.2'; l2.innerText = '1.4'; l3.innerText = '0.1';
+            }
+        }
+
+        // --- 9. Activity Logic ---
+        let errorsFound = 0;
+        function checkActivity(cell, isError) {
+            if (cell.classList.contains('bg-success') || cell.classList.contains('bg-danger')) return;
+            
+            if (isError) {
+                cell.classList.add('bg-danger', 'text-white');
+                errorsFound++;
+                document.getElementById('activity-feedback').innerText = `Great job! You found an error. (${errorsFound}/2 found)`;
+                document.getElementById('activity-feedback').className = "mt-3 fw-bold text-success";
+            } else {
+                cell.classList.add('bg-success', 'text-white');
+                document.getElementById('activity-feedback').innerText = "That data looks fine! Keep looking for errors.";
+                document.getElementById('activity-feedback').className = "mt-3 fw-bold text-danger";
+            }
+        }
+
+        // --- 10. Quiz Logic ---
+        const quizData = [
+            { q: "What does 'Garbage In, Garbage Out' refer to?", o: ["Memory management", "Bad data leads to bad models", "Recycling code", "Deleting files"], a: 1 },
+            { q: "Which of the following handles missing values?", o: ["Standardization", "Imputation", "One-Hot Encoding", "Min-Max Scaling"], a: 1 },
+            { q: "Converting categorical text into binary columns is called:", o: ["Normalization", "Feature Extraction", "One-Hot Encoding", "Discretization"], a: 2 },
+            { q: "What is MNAR?", o: ["Missing Not At Random", "Mean Normalized Absolute Ratio", "Maximum Null Array Return", "Multiple Nominal And Real"], a: 0 },
+            { q: "Which technique forces data to be between 0 and 1?", o: ["Standardization", "Normalization", "Binarization", "Imputation"], a: 1 },
+            { q: "Converting Date of Birth to Age is an example of:", o: ["Feature Scaling", "Feature Selection", "Feature Engineering", "Data Cleaning"], a: 2 },
+            { q: "Which feature selection method uses correlation algorithms independent of any ML model?", o: ["Wrapper Method", "Embedded Method", "Filter Method", "Pipeline Method"], a: 2 },
+            { q: "Standardization centers the data around a mean of:", o: ["1", "0", "-1", "100"], a: 1 },
+            { q: "Removing duplicate rows falls under:", o: ["Data Cleaning", "Feature Selection", "Feature Scaling", "Encoding"], a: 0 },
+            { q: "A correlation heatmap is primarily used for:", o: ["Handling Missing Values", "Feature Selection", "Scaling", "Encoding Categorical Data"], a: 1 }
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let answered = false;
+
+        function startQuiz() {
+            document.getElementById('quiz-start').classList.add('d-none');
+            document.getElementById('quiz-container').style.display = 'block';
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            answered = false;
+            document.getElementById('next-btn').classList.add('d-none');
+            document.getElementById('feedback-text').innerText = '';
+            
+            const qData = quizData[currentQ];
+            document.getElementById('question-text').innerText = `Q${currentQ + 1}. ${qData.q}`;
+            
+            const optsContainer = document.getElementById('options-container');
+            optsContainer.innerHTML = '';
+            
+            qData.o.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-outline-primary options-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(index, btn);
+                optsContainer.appendChild(btn);
+            });
+
+            // Update Progress
+            const progress = ((currentQ) / quizData.length) * 100;
+            document.getElementById('quiz-progress').style.width = `${progress}%`;
+        }
+
+        function checkAnswer(selectedIdx, btn) {
+            if (answered) return;
+            answered = true;
+            
+            const correctIdx = quizData[currentQ].a;
+            const buttons = document.querySelectorAll('.options-btn');
+            
+            if (selectedIdx === correctIdx) {
+                btn.classList.replace('btn-outline-primary', 'btn-success');
+                document.getElementById('feedback-text').innerText = 'Correct! ✅';
+                document.getElementById('feedback-text').className = 'mt-3 fw-bold text-success';
+                score++;
+            } else {
+                btn.classList.replace('btn-outline-primary', 'btn-danger');
+                buttons[correctIdx].classList.replace('btn-outline-primary', 'btn-success');
+                document.getElementById('feedback-text').innerText = 'Incorrect! ❌';
+                document.getElementById('feedback-text').className = 'mt-3 fw-bold text-danger';
+            }
+            
+            document.getElementById('next-btn').classList.remove('d-none');
+        }
+
+        function nextQuestion() {
+            currentQ++;
+            if (currentQ < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-container').style.display = 'none';
+            const resultDiv = document.getElementById('quiz-result');
+            resultDiv.classList.remove('d-none');
+            
+            const percentage = (score / quizData.length) * 100;
+            document.getElementById('score-text').innerText = `You scored ${score} out of ${quizData.length} (${percentage}%)`;
+            
+            if (percentage > 70) {
+                document.getElementById('score-msg').innerText = "Excellent work! You've mastered the basics.";
+                triggerConfetti();
+            } else {
+                document.getElementById('score-msg').innerText = "Good effort! Review the sections and try again.";
+            }
+        }
+
+        function resetQuiz() {
+            currentQ = 0;
+            score = 0;
+            document.getElementById('quiz-result').classList.add('d-none');
+            startQuiz();
+        }
+
+        function triggerConfetti() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) { return clearInterval(interval); }
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+    </script>
+</body>
+</html>
